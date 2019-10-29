@@ -15,9 +15,10 @@ public class Main {
 	
 	private static void executeSingleRun() {
 		List<Particle> particles = Configuration.generateRandomInputFilesAndParseConfiguration();
-		Grid grid = new Grid(particles);
-		GranularManager manager = new GranularManager(grid);
-		manager.execute();
+		Configuration.writeOvitoOutputFile(0, particles);
+		//Grid grid = new Grid(particles);
+		//GranularManager manager = new GranularManager(grid);
+		//manager.execute();
 	}
 
 }

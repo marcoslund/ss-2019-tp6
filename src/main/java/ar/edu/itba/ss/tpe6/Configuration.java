@@ -17,26 +17,33 @@ public class Configuration {
 
 	private static String INPUT_FILE_NAME = "config.txt";
 	private static String OUTPUT_FILE_NAME = "ovito_output.xyz";
-	private static String EXIT_FILE_NAME = "exit.txt";
-	public static final double BOX_WIDTH = 0.4; // m
-	public static final double BOX_HEIGHT = 1.5; // m
-	public static final double HOLE_WIDTH = 0.25; // m
-	public static final double MIN_PARTICLE_HEIGHT = BOX_HEIGHT / 10; // m
-	public static final double MIN_PARTICLE_RADIUS = 0.01; // m
-	private static final double MAX_PARTICLE_RADIUS = 0.015; // m
-	public static final double K_NORM = 1e5;
+	public static final double INTERNAL_RADIUS = 2; // m
+	public static final double A_CONSTANT = 2000; // N
+	public static final double B_CONSTANT = 0.08; // m
+	public static final double MIN_PARTICLE_RADIUS = 0.25; // m
+	public static final double MAX_PARTICLE_RADIUS = 0.35; // m
+	public static final double K_NORM = 1.2e5;
 	public static final double K_TANG = 2 * K_NORM;
 	public static final double PARTICLE_MASS = 0.01; // kg
 	private static final double INIT_VEL = 0.0; // m/s
-	private static int particleCount;
+	public static final double TAU = 0.5; // s
+	private static int particleCount = 0;
 	private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
 	private static double timeLimit;
+	public static double externalRadius;
 	private static final int INVALID_POSITION_LIMIT = 500;
 	public static final double GRAVITY = -9.8; // m/s^2
 	private static String fileName = "";
 	
 	public static void requestParameters() {
 		Scanner scanner = new Scanner(System.in);
+
+		System.out.println("Enter Particle count:");
+		Integer pc = null;
+		while(pc == null || pc <= 0) {
+			pc = stringToInt(scanner.nextLine());
+		}
+		particleCount = pc;
 	    
 	    System.out.println("Enter Time Limit:");
     	Double selectedTimeLimit = null;
@@ -50,37 +57,55 @@ public class Configuration {
 		}
 		INPUT_FILE_NAME = fileName + "-input.txt";
 		OUTPUT_FILE_NAME = fileName + ".xyz";
-		EXIT_FILE_NAME = fileName + ".txt";
 	    
 	    scanner.close();
 	}
 	
 	/* Parameters must have already been requested */
 	public static List<Particle> generateRandomInputFilesAndParseConfiguration() {
-		generateInputFile();
-		List<Particle> particles = parseConfiguration();
+		List<Particle> particles = generateParticles();
+		externalRadius = calculateExternalRadius(particles);
+		setInitialPositions(particles);
 		generateOvitoOutputFile();
-		generateExitFile();
 		return particles;
 	}
-	
-	private static List<Particle> parseConfiguration() {
-		List<Particle> particles = new ArrayList<>();
-		try(BufferedReader br = new BufferedReader(new FileReader(INPUT_FILE_NAME))) {
-			String line = br.readLine(); /* Time (0) */
-			for(int i = 0; i < particleCount; i++) {
-				line = br.readLine();
-				if(line == null)
-					failWithMessage("Particles do not match particle count.");
-				String[] attributes = line.split(" ");
-				attributes = removeSpaces(attributes);
-				setParticleProperties(particles, attributes);
+
+	private static void setInitialPositions(List<Particle> particles) {
+		int invalidPositions = 0;
+		File inputFile = new File(INPUT_FILE_NAME);
+		inputFile.delete();
+		Random r = new Random();
+
+		try(FileWriter fw = new FileWriter(inputFile)) {
+			inputFile.createNewFile();
+			fw.write("0\n");
+
+			int i;
+			for(i = 0; i < particles.size(); i++) {
+				Particle p = particles.get(i);
+				double randomPositionX = 0;
+				double randomPositionY = 0;
+				boolean isValidPosition = false;
+
+				while (!isValidPosition) {
+					randomPositionX = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
+					randomPositionY = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
+					isValidPosition = validateParticlePosition(particles, randomPositionX, randomPositionY, p.getRadius());
+
+					invalidPositions += (isValidPosition) ? 0 : 1;
+				}
+				if (invalidPositions > INVALID_POSITION_LIMIT) break;
+				invalidPositions = 0;
+				p.setPosition(randomPositionX, randomPositionY);
+
+				fw.write(p.getId() + " " + p.getRadius() + " " + randomPositionX + " " + randomPositionY + " " + INIT_VEL + " " + INIT_VEL + "\n");
 			}
-		} catch(Exception e) {
+			particles.removeAll(particles.subList(i, particles.size()));
+			particleCount = particles.size();
+		} catch (IOException e) {
+			System.err.println("Failed to create input file.");
 			e.printStackTrace();
-			System.exit(1);
 		}
-		return particles;
 	}
 	
 	private static String[] removeSpaces(String[] array) {
@@ -114,6 +139,13 @@ public class Configuration {
 		System.err.println(message);
 		System.exit(1);
 	}
+
+	private static double calculateExternalRadius(final List<Particle> particles) {
+		return 5 * particles.stream()
+				.mapToDouble(p -> p.getRadius() * 2)
+				.average()
+				.orElse(0) + INTERNAL_RADIUS;
+	}
 	
 	private static void setParticleProperties(final List<Particle> particles, final String[] attributes) {
 		final int propertyCount = 6;
@@ -133,58 +165,52 @@ public class Configuration {
 	}
 	
 	/* Time (0) */
-    private static void generateInputFile() {
+    private static List<Particle> generateParticles() {
         List<Particle> particles = new ArrayList<>();
-        File inputFile = new File(INPUT_FILE_NAME);
-        inputFile.delete();
-        try(FileWriter fw = new FileWriter(inputFile)) {
-            inputFile.createNewFile();
-            fw.write("0\n");
-            
-            Random r = new Random();
-            int invalidPositions = 0;
-            while(invalidPositions < INVALID_POSITION_LIMIT) {
-            	double radius = r.nextDouble() * (MAX_PARTICLE_RADIUS - MIN_PARTICLE_RADIUS) + MIN_PARTICLE_RADIUS;
-                double randomPositionX = BOX_WIDTH * 0.1;
-                double randomPositionY = BOX_HEIGHT * 0.9;
-                boolean isValidPosition = false;
 
-                while(!isValidPosition) {
-                    randomPositionX = (BOX_WIDTH - 2 * radius) * r.nextDouble() + radius;
-                    randomPositionY = (BOX_HEIGHT - 2 * radius) * r.nextDouble() + radius + MIN_PARTICLE_HEIGHT;
-                    isValidPosition = validateParticlePosition(particles, randomPositionX, randomPositionY, radius);
-					
-                    invalidPositions += (isValidPosition) ? 0 : 1;
-					if (invalidPositions > INVALID_POSITION_LIMIT) break;
-				}
-				if (invalidPositions > INVALID_POSITION_LIMIT) break;
-				invalidPositions = 0;
-                Particle p = new Particle(radius, PARTICLE_MASS, randomPositionX, randomPositionY, INIT_VEL, INIT_VEL);
-                particles.add(p);
-                fw.write(p.getId() + " " + radius + " " + randomPositionX + " " + randomPositionY + " " + INIT_VEL + " " + INIT_VEL + "\n");
-            }
-            particleCount = particles.size();
-        } catch (IOException e) {
-            System.err.println("Failed to create input file.");
-            e.printStackTrace();
-        }
+		Random r = new Random();
+
+		for(int i = 0; i < particleCount; i++) {
+			double radius = r.nextDouble() * (MAX_PARTICLE_RADIUS - MIN_PARTICLE_RADIUS) + MIN_PARTICLE_RADIUS;
+			Particle p = new Particle(radius, PARTICLE_MASS, 0, 0, INIT_VEL, INIT_VEL);
+			particles.add(p);
+		}
+
+		return particles;
     }
     
-    public static boolean validateParticlePosition(final List<Particle> particles, final double randomPositionX,
-    		final double randomPositionY, final double radius) {
-        if(particles.isEmpty())
-            return true;
-        if(randomPositionX - radius < 0 || randomPositionX + radius > BOX_WIDTH
-			|| randomPositionY - radius - MIN_PARTICLE_HEIGHT < 0 || randomPositionY + radius > BOX_HEIGHT + MIN_PARTICLE_HEIGHT)
+    public static boolean validateParticlePosition(final List<Particle> particles,
+												   final double randomPositionX,
+												   final double randomPositionY,
+												   final double radius) {
+        if(!isWithinCircle(randomPositionX, randomPositionY, radius, externalRadius, externalRadius)
+				|| isWithinCircle(randomPositionX, randomPositionY, radius, externalRadius, INTERNAL_RADIUS)) {
         	return false;
-        for(Particle p : particles) {
+		}
+    	for(Particle p : particles) {
+    		if(Double.compare(p.getPosition().getX(), 0) == 0
+					&& Double.compare(p.getPosition().getY(), 0) == 0) {
+    			continue;
+			}
             if(Math.sqrt(Math.pow(p.getPosition().getX() - randomPositionX, 2) + Math.pow(p.getPosition().getY() - randomPositionY, 2))
                     < (p.getRadius() + radius))
                 return false;
         }
         return true;
     }
-	
+
+	private static boolean isWithinCircle(final double randomPositionX,
+										  final double randomPositionY,
+										  final double particleRadius,
+										  final double circlePosition,
+										  final double circleRadius) {
+		double centerToCenterDistance = Math.sqrt(
+				Math.pow(Math.abs(randomPositionX - circlePosition), 2)
+						+ Math.pow(Math.abs(randomPositionY - circlePosition), 2)
+		);
+		return centerToCenterDistance - particleRadius <= circleRadius;
+    }
+
 	private static void generateOvitoOutputFile() {
 		File outputFile = new File(OUTPUT_FILE_NAME);
 		outputFile.delete();
@@ -195,23 +221,12 @@ public class Configuration {
 			e.printStackTrace();
 		}
 	}
-
-	private static void generateExitFile() {
-		File exitFile = new File(EXIT_FILE_NAME);
-		exitFile.delete();
-		try {
-			exitFile.createNewFile();
-		} catch (IOException e) {
-			System.err.println("Failed to create exit file.");
-			e.printStackTrace();
-		}
-	}
 	
 	public static void writeOvitoOutputFile(double time, List<Particle> particles) {
 		File outputFile = new File(OUTPUT_FILE_NAME);
 		try(FileWriter fw = new FileWriter(outputFile, true)) {
 			fw.write(particleCount + "\n");
-			fw.write("Lattice=\"" + BOX_WIDTH + " 0.0 0.0 0.0 " + BOX_HEIGHT 
+			fw.write("Lattice=\"" + externalRadius * 2 + " 0.0 0.0 0.0 " + externalRadius * 2
 				+ " 0.0 0.0 0.0 1.0"
 				+ "\" Properties=id:I:1:radius:R:1:pos:R:2:velo:R:2:Pressure:R:1 Time=" + String.format(Locale.US, "%.2g", time) + "\n");
 			for(Particle p : particles) {
@@ -219,16 +234,6 @@ public class Configuration {
 			}
 		} catch (IOException e) {
 			System.err.println("Failed to write Ovito output file.");
-			e.printStackTrace();
-		}
-	}
-
-	public static void writeExitFile(double time) {
-		File outputFile = new File(EXIT_FILE_NAME);
-		try(FileWriter fw = new FileWriter(outputFile, true)) {
-			fw.write(time + "\n");
-		} catch (IOException e) {
-			System.err.println("Failed to write exit file.");
 			e.printStackTrace();
 		}
 	}
