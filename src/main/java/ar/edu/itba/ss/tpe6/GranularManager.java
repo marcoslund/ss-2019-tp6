@@ -1,4 +1,4 @@
-package ar.edu.itba.ss.tpe5;
+package ar.edu.itba.ss.tpe6;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;

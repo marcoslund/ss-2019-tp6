@@ -54,7 +54,7 @@
           <configuration>
             <archive>
               <manifest>
-                <mainClass>ar.edu.itba.ss.tpe5.Main</mainClass>
+                <mainClass>ar.edu.itba.ss.tpe6.Main</mainClass>
               </manifest>
             </archive>
             <descriptorRefs>
@@ -81,7 +81,7 @@
             <archive>
               <manifest>
                 <addClasspath>true</addClasspath>
-                <mainClass>ar.edu.itba.ss.tpe5.Main</mainClass>
+                <mainClass>ar.edu.itba.ss.tpe6.Main</mainClass>
               </manifest>
               <manifestEntries>
                 <Class-Path>tpe-1.0.jar</Class-Path>
