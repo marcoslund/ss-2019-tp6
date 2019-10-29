@@ -1,17 +1,13 @@
 package ar.edu.itba.ss.tpe6;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 public class Configuration {
 
@@ -22,17 +18,18 @@ public class Configuration {
 	public static final double B_CONSTANT = 0.08; // m
 	public static final double MIN_PARTICLE_RADIUS = 0.25; // m
 	public static final double MAX_PARTICLE_RADIUS = 0.35; // m
-	public static final double K_NORM = 1.2e5;
-	public static final double K_TANG = 2 * K_NORM;
-	public static final double PARTICLE_MASS = 0.01; // kg
+	public static final double K_NORM = 1.2e5; // kg/s^2
+	public static final double K_TANG = 2 * K_NORM; // kg/(m s)
+	public static final double PARTICLE_MASS = 80; // kg
 	private static final double INIT_VEL = 0.0; // m/s
 	public static final double TAU = 0.5; // s
+	public static final double DESIRED_VEL = 0.8; // m/s
 	private static int particleCount = 0;
-	private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
+	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
 	private static double timeLimit;
 	public static double externalRadius;
 	private static final int INVALID_POSITION_LIMIT = 500;
-	public static final double GRAVITY = -9.8; // m/s^2
+	//public static final double GRAVITY = -9.8; // m/s^2
 	private static String fileName = "";
 	
 	public static void requestParameters() {
@@ -108,13 +105,6 @@ public class Configuration {
 		}
 	}
 	
-	private static String[] removeSpaces(String[] array) {
-		List<String> list = new ArrayList<>(Arrays.asList(array));
-		List<String> filteredList = list.stream().filter(s -> !s.equals("") && !s.equals(" ")).collect(Collectors.toList());
-		String[] newArray = new String[filteredList.size()];
-		return filteredList.toArray(newArray);
-	}
-	
 	private static Integer stringToInt(String s) {
 		Integer i = null;
 		try {
@@ -134,34 +124,12 @@ public class Configuration {
 		}
 		return d;
 	}
-	
-	private static void failWithMessage(String message) {
-		System.err.println(message);
-		System.exit(1);
-	}
 
 	private static double calculateExternalRadius(final List<Particle> particles) {
 		return 5 * particles.stream()
 				.mapToDouble(p -> p.getRadius() * 2)
 				.average()
 				.orElse(0) + INTERNAL_RADIUS;
-	}
-	
-	private static void setParticleProperties(final List<Particle> particles, final String[] attributes) {
-		final int propertyCount = 6;
-		Integer id = null;
-		Double radius = null;
-		Double x = null;
-		Double y = null;
-		Double vx = null;
-		Double vy = null;
-		if(attributes.length != propertyCount || (id = stringToInt(attributes[0])) == null || (radius = stringToDouble(attributes[1])) == null
-			|| (x = stringToDouble(attributes[2])) == null || (y = stringToDouble(attributes[3])) == null 
-			|| (vx = stringToDouble(attributes[4])) == null || (vy = stringToDouble(attributes[5])) == null) {
-				failWithMessage(attributes[0] + ", " + attributes[1] + ", " + attributes[2] + ", " + attributes[3] 
-						+ ", " + attributes[4] + ", " + attributes[5] + " are invalid attributes.");
-			}
-		particles.add(new Particle(id, radius, PARTICLE_MASS, x, y, vx, vy));
 	}
 	
 	/* Time (0) */
@@ -256,7 +224,7 @@ public class Configuration {
 		return timeLimit;
 	}
 
-	public static double getTimeStep() {
-		return timeStep;
-	}
+//	public static double getTimeStep() {
+//		return timeStep;
+//	}
 }

@@ -21,6 +21,7 @@ public class Particle implements Cloneable {
 	public Particle(final double radius, final double mass, final double x, final double y, final double vx, final double vy) {
 		this.id = count++;
 		this.radius = radius;
+		this.mass = mass;
 		this.position = new Point2D.Double(x, y);
 		this.velocity = new Point2D.Double(vx, vy);
 		this.neighbors = new HashSet<>();
