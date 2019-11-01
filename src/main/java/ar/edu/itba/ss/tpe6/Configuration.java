@@ -26,11 +26,10 @@ public class Configuration {
 	public static final double DESIRED_VEL = 0.8; // m/s
 	private static int particleCount = 0;
 	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
-	public static final double TIME_STEP = 0.01; // s
+	public static final double TIME_STEP = 0.1; // s
 	private static double timeLimit;
 	public static double externalRadius;
 	private static final int INVALID_POSITION_LIMIT = 500;
-	//public static final double GRAVITY = -9.8; // m/s^2
 	private static String fileName = "";
 	
 	public static void requestParameters() {
@@ -152,8 +151,8 @@ public class Configuration {
 												   final double randomPositionX,
 												   final double randomPositionY,
 												   final double radius) {
-        if(!isWithinCircle(randomPositionX, randomPositionY, radius, externalRadius, externalRadius)
-				|| isWithinCircle(randomPositionX, randomPositionY, radius, externalRadius, INTERNAL_RADIUS)) {
+        if(!isWithinExternalCircle(randomPositionX, randomPositionY, radius, externalRadius, externalRadius)
+				|| isWithinInternalCircle(randomPositionX, randomPositionY, radius, externalRadius, INTERNAL_RADIUS)) {
         	return false;
 		}
     	for(Particle p : particles) {
@@ -168,17 +167,29 @@ public class Configuration {
         return true;
     }
 
-	private static boolean isWithinCircle(final double randomPositionX,
+	private static boolean isWithinExternalCircle(final double randomPositionX,
 										  final double randomPositionY,
 										  final double particleRadius,
 										  final double circlePosition,
 										  final double circleRadius) {
 		double centerToCenterDistance = Math.sqrt(
-				Math.pow(Math.abs(randomPositionX - circlePosition), 2)
-						+ Math.pow(Math.abs(randomPositionY - circlePosition), 2)
+				Math.pow(randomPositionX - circlePosition, 2)
+						+ Math.pow(randomPositionY - circlePosition, 2)
 		);
-		return centerToCenterDistance - particleRadius <= circleRadius;
+		return centerToCenterDistance <= circleRadius - particleRadius;
     }
+	
+	private static boolean isWithinInternalCircle(final double randomPositionX,
+			  final double randomPositionY,
+			  final double particleRadius,
+			  final double circlePosition,
+			  final double circleRadius) {
+		double centerToCenterDistance = Math.sqrt(
+				Math.pow(randomPositionX - circlePosition, 2)
+				+ Math.pow(randomPositionY - circlePosition, 2)
+		);
+		return centerToCenterDistance <= circleRadius + particleRadius;
+	}
 
 	private static void generateOvitoOutputFile() {
 		File outputFile = new File(OUTPUT_FILE_NAME);

@@ -55,7 +55,7 @@ public class SocialForceManager {
 					+ (5 / 6.0) * currAcceleration.getX() * timeStep
 					- (1 / 6.0) * prevAcceleration.getX() * timeStep;
 			
-			double correctedVelocityY = currParticle.getVelocity().getX()
+			double correctedVelocityY = currParticle.getVelocity().getY()
 					+ (1 / 3.0) * predAcceleration.getY() * timeStep
 					+ (5 / 6.0) * currAcceleration.getY() * timeStep
 					- (1 / 6.0) * prevAcceleration.getY() * timeStep;
@@ -72,7 +72,7 @@ public class SocialForceManager {
     
 	private void predictParticles(final List<Particle> predictedParticles,
 			final List<Particle> currentParticles, final List<Particle> prevParticles) {
-		for(int i = 0; i < predictedParticles.size(); i++) {
+		for(int i = 0; i < currentParticles.size(); i++) {
 			Particle currParticle = currentParticles.get(i);
 			Particle prevParticle = prevParticles.get(i);
 			
@@ -106,6 +106,7 @@ public class SocialForceManager {
     	Point2D.Double granularForce = getGranularForce(particle);
     	Point2D.Double socialForce = getSocialForce(particle);
     	Point2D.Double drivingForce = getDrivingForce(particle);
+    	
         return new Point2D.Double(
         		(granularForce.getX() + socialForce.getX() + drivingForce.getX()) / particle.getMass(),
         		(granularForce.getY() + socialForce.getY() + drivingForce.getY()) / particle.getMass());
