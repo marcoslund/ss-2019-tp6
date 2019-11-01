@@ -128,14 +128,35 @@ public class SocialForceManager {
 	}
 
 	private Point2D.Double getSocialForce(final Particle particle) {
-		// TODO Auto-generated method stub
-		return new Point2D.Double(0, 0);
+		double resultantForceX = 0;
+		double resultantForceY = 0;
+		
+		for(Particle other : grid.getParticles()) {
+			if(!particle.equals(other)) {
+				double normalUnitVectorX = (other.getPosition().getX() - particle.getPosition().getX())
+						/ Math.abs(other.getRadius() - particle.getRadius());
+	        	double normalUnitVectorY = (other.getPosition().getY() - particle.getPosition().getY())
+	        			/ Math.abs(other.getRadius() - particle.getRadius());
+	        	double norm = Math.sqrt(Math.pow(normalUnitVectorX, 2) + Math.pow(normalUnitVectorY, 2));
+	        	normalUnitVectorX /= norm;
+	        	normalUnitVectorY /= norm;
+	        	Point2D.Double normalUnitVector = new Point2D.Double(normalUnitVectorX, normalUnitVectorY);
+	        	
+	        	double overlap = particle.getCenterToCenterDistance(other) - (particle.getRadius() + other.getRadius());
+		        	
+				double normalForce = - Configuration.A_CONSTANT * Math.exp(- overlap / Configuration.B_CONSTANT);
+	        	
+				resultantForceX += normalForce * normalUnitVector.getX();
+				resultantForceY += normalForce * normalUnitVector.getY();
+			}
+		}
+		return new Point2D.Double(resultantForceX, resultantForceY);
 	}
 
 	private Point2D.Double getGranularForce(final Particle particle) {
 		Point2D.Double wallCollisionForce = getWallCollisionForce(particle);
 		Point2D.Double particleCollisionForce = getParticleCollisionForce(particle);
-		// TODO Auto-generated method stub
+		
 		return new Point2D.Double(wallCollisionForce.getX() + particleCollisionForce.getX(), 
 				wallCollisionForce.getY() + particleCollisionForce.getY());
 	}
