@@ -22,7 +22,7 @@ public class Configuration {
 	public static final double K_TANG = 2 * K_NORM; // kg/(m s)
 	public static final double PARTICLE_MASS = 80; // kg
 	private static final double INIT_VEL = 0.0; // m/s
-	public static final double TAU = 0.5; // s
+	public static final double TAU = 0.1; // s
 	public static final double DESIRED_VEL = 0.8; // m/s
 	private static int particleCount = 0;
 	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);

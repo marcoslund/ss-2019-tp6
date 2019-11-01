@@ -92,8 +92,45 @@ public class SocialForceManager {
 	}
 
 	private Point2D.Double getGranularForce(final Particle particle) {
+		Point2D.Double wallForce = getWallForce(particle);
 		// TODO Auto-generated method stub
-		return new Point2D.Double(0, 0);
+		return wallForce;
+	}
+
+	private Point2D.Double getWallForce(final Particle particle) {
+		double normalForce = 0;
+		double tangentForce = 0;
+		double resultantForceX = 0;
+		double resultantForceY = 0;
+		
+		double tangentUnitVectorX = (grid.getExternalRadius() - particle.getPosition().getY());
+		double tangentUnitVectorY = - (grid.getExternalRadius() - particle.getPosition().getX());
+		double norm = Math.sqrt(Math.pow(tangentUnitVectorX, 2) + Math.pow(tangentUnitVectorY, 2));
+		tangentUnitVectorX /= norm;
+		tangentUnitVectorY /= norm;
+		Point2D.Double normalUnitVector = new Point2D.Double(- tangentUnitVectorY, tangentUnitVectorX);
+    	Point2D.Double tangentUnitVector = new Point2D.Double(tangentUnitVectorX, tangentUnitVectorY);
+		
+		double distanceToCenter = Point2D.distance(particle.getPosition().getX(), particle.getPosition().getY(),
+				grid.getExternalRadius(), grid.getExternalRadius());
+		if(distanceToCenter < particle.getRadius() + grid.getInternalRadius()) {
+			// Inner wall collision
+			double innerOverlap = (particle.getRadius() + grid.getInternalRadius()) - distanceToCenter;
+			normalForce += innerOverlap * Configuration.K_NORM;
+			tangentForce += - innerOverlap * Configuration.K_TANG; //* vtang;
+			
+		}
+		if(distanceToCenter + particle.getRadius() > grid.getExternalRadius()) {
+			// Outer wall collision
+			double outerOverlap = distanceToCenter + particle.getRadius() - grid.getExternalRadius();
+			normalForce += outerOverlap * Configuration.K_NORM;
+			tangentForce += - outerOverlap * Configuration.K_TANG; //* vtang;
+		}
+		
+		resultantForceX += normalForce * normalUnitVector.getX() + tangentForce * (- normalUnitVector.getY());
+		resultantForceY += normalForce * normalUnitVector.getY() + tangentForce * normalUnitVector.getX();
+		
+		return new Point2D.Double(resultantForceX, resultantForceY);
 	}
 
 //    private Point2D.Double getParticleForce(final Particle p) {
