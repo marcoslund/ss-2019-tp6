@@ -26,7 +26,7 @@ public class Configuration {
 	public static final double DESIRED_VEL = 0.8; // m/s
 	private static int particleCount = 0;
 	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
-	public static final double TIME_STEP = 0.1; // s
+	public static final double TIME_STEP = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM); // s
 	private static double timeLimit;
 	public static double externalRadius;
 	private static final int INVALID_POSITION_LIMIT = 500;

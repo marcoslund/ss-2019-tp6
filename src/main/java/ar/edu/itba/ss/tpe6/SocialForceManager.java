@@ -16,20 +16,20 @@ public class SocialForceManager {
     }
     
     public void execute() {
-//		double accumulatedPrintingTime = 0.0;
-//		double printingTimeLimit = 0.005; //s
+		double accumulatedPrintingTime = 0.0;
+		double printingTimeLimit = 0.1; //s
     	
     	List<Particle> prevParticles = initPrevParticles(grid.getParticles());
     	List<Particle> predictedParticles = new ArrayList<>(prevParticles.size());
     	prevParticles.forEach(p -> predictedParticles.add(p.clone()));
     	
 		while(Double.compare(accumulatedTime, Configuration.getTimeLimit()) <= 0) {
-//			if (accumulatedPrintingTime >= printingTimeLimit) {
+			if (accumulatedPrintingTime >= printingTimeLimit) {
 				Configuration.writeOvitoOutputFile(accumulatedTime, grid.getParticles());
-//				accumulatedPrintingTime = 0;
-//			}
+				accumulatedPrintingTime = 0;
+			}
 			accumulatedTime += timeStep;
-//			accumulatedPrintingTime += timeStep;
+			accumulatedPrintingTime += timeStep;
 			
 			grid.setParticles(updateParticles(prevParticles, predictedParticles));
 		}
@@ -133,12 +133,46 @@ public class SocialForceManager {
 	}
 
 	private Point2D.Double getGranularForce(final Particle particle) {
-		Point2D.Double wallForce = getWallForce(particle);
+		Point2D.Double wallCollisionForce = getWallCollisionForce(particle);
+		Point2D.Double particleCollisionForce = getParticleCollisionForce(particle);
 		// TODO Auto-generated method stub
-		return wallForce;
+		return new Point2D.Double(wallCollisionForce.getX() + particleCollisionForce.getX(), 
+				wallCollisionForce.getY() + particleCollisionForce.getY());
 	}
 
-	private Point2D.Double getWallForce(final Particle particle) {
+	private Point2D.Double getParticleCollisionForce(final Particle particle) {
+		double resultantForceX = 0;
+		double resultantForceY = 0;
+		
+		for(Particle other : grid.getParticles()) {
+			if(!particle.equals(other)) {
+				double normalUnitVectorX = (other.getPosition().getX() - particle.getPosition().getX())
+						/ Math.abs(other.getRadius() - particle.getRadius());
+	        	double normalUnitVectorY = (other.getPosition().getY() - particle.getPosition().getY())
+	        			/ Math.abs(other.getRadius() - particle.getRadius());
+	        	double norm = Math.sqrt(Math.pow(normalUnitVectorX, 2) + Math.pow(normalUnitVectorY, 2));
+	        	normalUnitVectorX /= norm;
+	        	normalUnitVectorY /= norm;
+	        	Point2D.Double normalUnitVector = new Point2D.Double(normalUnitVectorX, normalUnitVectorY);
+	        	Point2D.Double tangentUnitVector = new Point2D.Double(- normalUnitVectorY, normalUnitVectorX);
+	        	
+	        	double overlap = particle.getRadius() + other.getRadius() - particle.getCenterToCenterDistance(other);
+	        	if(overlap >= 0) {
+	        		Point2D.Double relativeVelocity = particle.getRelativeVelocity(other);
+		        	
+					double normalForce = - Configuration.K_NORM * overlap;
+		        	double tangentForce = - Configuration.K_TANG * overlap * (relativeVelocity.getX() * tangentUnitVector.getX()
+							+ relativeVelocity.getY() * tangentUnitVector.getY());
+		        	
+					resultantForceX += normalForce * normalUnitVector.getX() + tangentForce * tangentUnitVector.getX();
+					resultantForceY += normalForce * normalUnitVector.getY() + tangentForce * tangentUnitVector.getY();
+	        	}
+			}
+        }
+		return new Point2D.Double(resultantForceX, resultantForceY);
+	}
+
+	private Point2D.Double getWallCollisionForce(final Particle particle) {
 		double normalForce = 0;
 		double tangentForce = 0;
 		double resultantForceX = 0;
