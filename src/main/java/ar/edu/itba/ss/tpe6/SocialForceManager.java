@@ -12,13 +12,17 @@ public class SocialForceManager {
     
     public SocialForceManager(final Grid grid) {
     	this.grid = grid;
-    	timeStep = Configuration.TAU;
+    	timeStep = Configuration.TIME_STEP;
     }
     
     public void execute() {
 //		double accumulatedPrintingTime = 0.0;
 //		double printingTimeLimit = 0.005; //s
-
+    	
+    	List<Particle> prevParticles = initPrevParticles(grid.getParticles());
+    	List<Particle> predictedParticles = new ArrayList<>(prevParticles.size());
+    	prevParticles.forEach(p -> predictedParticles.add(p.clone()));
+    	
 		while(Double.compare(accumulatedTime, Configuration.getTimeLimit()) <= 0) {
 //			if (accumulatedPrintingTime >= printingTimeLimit) {
 				Configuration.writeOvitoOutputFile(accumulatedTime, grid.getParticles());
@@ -27,41 +31,77 @@ public class SocialForceManager {
 			accumulatedTime += timeStep;
 //			accumulatedPrintingTime += timeStep;
 			
-			List<Particle> currentParticles = grid.getParticles();
-			List<Particle> updatedParticles = new ArrayList<>(currentParticles.size());
-			updateParticles(currentParticles, updatedParticles);
-			grid.setParticles(updatedParticles);
+			grid.setParticles(updateParticles(prevParticles, predictedParticles));
 		}
 	}
     
-    private void updateParticles(List<Particle> currentParticles, List<Particle> updatedParticles) {
+    private List<Particle> updateParticles(final List<Particle> prevParticles, final List<Particle> predictedParticles) {
+    	List<Particle> currentParticles = grid.getParticles();
+    	predictParticles(predictedParticles, currentParticles, prevParticles);
+    	List<Particle> updatedParticles = new ArrayList<>(currentParticles.size());
+    	
 		for(int i = 0; i < currentParticles.size(); i++) {
 			Particle currParticle = currentParticles.get(i);
+			Particle prevParticle = prevParticles.get(i);
+			Particle predParticle = predictedParticles.get(i);
 			Particle updatedParticle = currParticle.clone();
 			
-			Point2D.Double acceleration = getAcceleration(currParticle, currentParticles);
+			Point2D.Double currAcceleration = getAcceleration(currParticle, currentParticles);
+			Point2D.Double prevAcceleration = getAcceleration(prevParticle, prevParticles);
+			Point2D.Double predAcceleration = getAcceleration(predParticle, predictedParticles);
 			
-			Point2D.Double newVelocity = new Point2D.Double(
-					currParticle.getVelocity().getX() + acceleration.getX() * timeStep,
-					currParticle.getVelocity().getY() + acceleration.getY() * timeStep);
+			double correctedVelocityX = currParticle.getVelocity().getX()
+					+ (1 / 3.0) * predAcceleration.getX() * timeStep
+					+ (5 / 6.0) * currAcceleration.getX() * timeStep
+					- (1 / 6.0) * prevAcceleration.getX() * timeStep;
 			
-			double norm = Math.sqrt(Math.pow(newVelocity.getX(), 2) + Math.pow(newVelocity.getY(), 2));
-			if(norm > Configuration.DESIRED_VEL) {
-				newVelocity = new Point2D.Double(
-						newVelocity.getX() / norm * Configuration.DESIRED_VEL,
-						newVelocity.getY() / norm * Configuration.DESIRED_VEL);
-			}
+			double correctedVelocityY = currParticle.getVelocity().getX()
+					+ (1 / 3.0) * predAcceleration.getY() * timeStep
+					+ (5 / 6.0) * currAcceleration.getY() * timeStep
+					- (1 / 6.0) * prevAcceleration.getY() * timeStep;
 			
-			double newPositionX = currParticle.getPosition().getX() + newVelocity.getX() * timeStep;
-			double newPositionY = currParticle.getPosition().getY() + newVelocity.getY() * timeStep;
-			
-			updatedParticle.setPosition(newPositionX, newPositionY);
-			updatedParticle.setVelocity(newVelocity.getX(), newVelocity.getY());
-			updatedParticle.setPressure(currParticle.getPressure());
+			prevParticle.setPosition(currParticle.getPosition().getX(), currParticle.getPosition().getY());
+			prevParticle.setVelocity(currParticle.getVelocity().getX(), currParticle.getVelocity().getY());
+			updatedParticle.setPosition(predParticle.getPosition().getX(), predParticle.getPosition().getY());
+			updatedParticle.setVelocity(correctedVelocityX, correctedVelocityY);
 			updatedParticles.add(updatedParticle);
 		}
+		
+		return updatedParticles;
 	}
     
+	private void predictParticles(final List<Particle> predictedParticles,
+			final List<Particle> currentParticles, final List<Particle> prevParticles) {
+		for(int i = 0; i < predictedParticles.size(); i++) {
+			Particle currParticle = currentParticles.get(i);
+			Particle prevParticle = prevParticles.get(i);
+			
+			Point2D.Double currAcceleration = getAcceleration(currParticle, currentParticles);
+			Point2D.Double prevAcceleration = getAcceleration(prevParticle, prevParticles);
+			
+			double newPositionX = currParticle.getPosition().getX() + currParticle.getVelocity().getX() * timeStep
+					+ (2 / 3.0) * currAcceleration.getX() * Math.pow(timeStep, 2)
+					- (1 / 6.0) * prevAcceleration.getX() * Math.pow(timeStep, 2);
+			
+			double predictedVelocityX = currParticle.getVelocity().getX() 
+					+ (3 / 2.0) * currAcceleration.getX() * timeStep
+					- (1 / 2.0) * prevAcceleration.getX() * timeStep;
+			
+			double newPositionY = currParticle.getPosition().getY() + currParticle.getVelocity().getY() * timeStep
+					+ (2 / 3.0) * currAcceleration.getY() * Math.pow(timeStep, 2)
+					- (1 / 6.0) * prevAcceleration.getY() * Math.pow(timeStep, 2);
+			
+			double predictedVelocityY = currParticle.getVelocity().getY() 
+					+ (3 / 2.0) * currAcceleration.getY() * timeStep
+					- (1 / 2.0) * prevAcceleration.getY() * timeStep;
+			
+			Particle predictedParticle = predictedParticles.get(i);
+			predictedParticle.setPosition(newPositionX, newPositionY);
+			predictedParticle.setVelocity(predictedVelocityX, predictedVelocityY);
+			predictedParticles.add(predictedParticle);
+		}
+	}
+
 	private Point2D.Double getAcceleration(final Particle particle, final List<Particle> particles) {
     	Point2D.Double granularForce = getGranularForce(particle);
     	Point2D.Double socialForce = getSocialForce(particle);
@@ -79,9 +119,9 @@ public class SocialForceManager {
 		desiredDirectionUnitVectorY /= norm;
 		
 		double drivingForceX = particle.getMass() 
-				* (Configuration.DESIRED_VEL * desiredDirectionUnitVectorX - particle.getVelocity().getX()) / timeStep;
+				* (Configuration.DESIRED_VEL * desiredDirectionUnitVectorX - particle.getVelocity().getX()) / Configuration.TAU;
 		double drivingForceY = particle.getMass() 
-				* (Configuration.DESIRED_VEL * desiredDirectionUnitVectorY - particle.getVelocity().getY()) / timeStep;
+				* (Configuration.DESIRED_VEL * desiredDirectionUnitVectorY - particle.getVelocity().getY()) / Configuration.TAU;
 		
 		return new Point2D.Double(drivingForceX, drivingForceY);
 	}
@@ -108,29 +148,55 @@ public class SocialForceManager {
 		double norm = Math.sqrt(Math.pow(tangentUnitVectorX, 2) + Math.pow(tangentUnitVectorY, 2));
 		tangentUnitVectorX /= norm;
 		tangentUnitVectorY /= norm;
-		Point2D.Double normalUnitVector = new Point2D.Double(- tangentUnitVectorY, tangentUnitVectorX);
+		Point2D.Double normalUnitVector = new Point2D.Double(tangentUnitVectorY, - tangentUnitVectorX);
     	Point2D.Double tangentUnitVector = new Point2D.Double(tangentUnitVectorX, tangentUnitVectorY);
 		
 		double distanceToCenter = Point2D.distance(particle.getPosition().getX(), particle.getPosition().getY(),
 				grid.getExternalRadius(), grid.getExternalRadius());
+		double tangentVelocity = particle.getVelocity().getX() * tangentUnitVectorX + particle.getVelocity().getY() * tangentUnitVectorY;
+		
 		if(distanceToCenter < particle.getRadius() + grid.getInternalRadius()) {
 			// Inner wall collision
 			double innerOverlap = (particle.getRadius() + grid.getInternalRadius()) - distanceToCenter;
 			normalForce += innerOverlap * Configuration.K_NORM;
-			tangentForce += - innerOverlap * Configuration.K_TANG; //* vtang;
+			tangentForce -= innerOverlap * Configuration.K_TANG * tangentVelocity;
 			
 		}
 		if(distanceToCenter + particle.getRadius() > grid.getExternalRadius()) {
 			// Outer wall collision
 			double outerOverlap = distanceToCenter + particle.getRadius() - grid.getExternalRadius();
-			normalForce += outerOverlap * Configuration.K_NORM;
-			tangentForce += - outerOverlap * Configuration.K_TANG; //* vtang;
+			normalForce -= outerOverlap * Configuration.K_NORM;
+			tangentForce -= outerOverlap * Configuration.K_TANG * tangentVelocity;
 		}
 		
-		resultantForceX += normalForce * normalUnitVector.getX() + tangentForce * (- normalUnitVector.getY());
-		resultantForceY += normalForce * normalUnitVector.getY() + tangentForce * normalUnitVector.getX();
+		resultantForceX += normalForce * normalUnitVector.getX() + tangentForce * tangentUnitVector.getX();
+		resultantForceY += normalForce * normalUnitVector.getY() + tangentForce * tangentUnitVector.getY();
 		
 		return new Point2D.Double(resultantForceX, resultantForceY);
+	}
+	
+	// Euler Algorithm evaluated in (- timeStep)
+    private List<Particle> initPrevParticles(List<Particle> currentParticles) {
+    	List<Particle> previousParticles = new ArrayList<>();
+		for(Particle p : currentParticles) {
+			Particle prevParticle = p.clone();
+			
+			Point2D.Double acceleration = getAcceleration(p, currentParticles);
+			
+			double prevPositionX = p.getPosition().getX() - timeStep * p.getVelocity().getX()
+					+ Math.pow(timeStep, 2) * acceleration.getX() / 2;
+			double prevPositionY = p.getPosition().getY() - timeStep * p.getVelocity().getY()
+					+ Math.pow(timeStep, 2) * acceleration.getY() / 2;
+			
+			double prevVelocityX = p.getVelocity().getX() - timeStep * acceleration.getX();
+			double prevVelocityY = p.getVelocity().getY() - timeStep * acceleration.getY();
+			
+			prevParticle.setPosition(prevPositionX, prevPositionY);
+			prevParticle.setVelocity(prevVelocityX, prevVelocityY);
+			previousParticles.add(prevParticle);
+		}
+		
+		return previousParticles;
 	}
 
 //    private Point2D.Double getParticleForce(final Particle p) {
