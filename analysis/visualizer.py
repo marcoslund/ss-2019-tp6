@@ -317,14 +317,14 @@ def comparison_biblio():
   plt.show()
 
 def approx_biblio():
-  dirs = ['biblio/HankinWright.txt']
+  dirs = ['biblio/Weidmann.txt']
   methodDir = 'runs_6--1.5' 
   fig, ax = plt.subplots()
   # Load bibliography methods
   for dir in dirs:
     name, vals = parseBiblio(dir)
     xs = [val[0] for val in vals]
-    xs = list(filter(lambda x: x < 2, xs))
+    # xs = list(filter(lambda x: x < 2, xs))
     ys = [val[1] for val in vals]
     ys = ys[:len(xs)]
     ax.set_ylabel('Velocidad [m/s]')
@@ -332,7 +332,8 @@ def approx_biblio():
     ax.plot(xs, ys, "o-", label=name, markersize=2)
 
   xs, ys, errs = fundamental_diagram_calc(methodDir, 32 * math.pi)
-  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o", zorder=1, markersize=2) 
+  xs, ys = zip(*sorted(zip(xs, ys)))
+  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o-", zorder=1, markersize=4) 
   [bar.set_alpha(0.5) for bar in bars]
 
   fig.tight_layout()

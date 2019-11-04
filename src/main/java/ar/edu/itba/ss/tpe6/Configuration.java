@@ -16,8 +16,8 @@ public class Configuration {
 	public static final double INTERNAL_RADIUS = 2; // m
 	public static final double A_CONSTANT = 2000; // N
 	public static final double B_CONSTANT = 0.08; // m
-	public static final double MIN_PARTICLE_RADIUS = 0.25; // m
-	public static final double MAX_PARTICLE_RADIUS = 0.30; // m
+	public static final double MIN_PARTICLE_RADIUS = 0.15; // m
+	public static final double MAX_PARTICLE_RADIUS = 0.25; // m
 	public static final double K_NORM = 1.2e5; // kg/s^2
 	public static final double K_TANG = 2 * K_NORM; // kg/(m s)
 	public static final double PARTICLE_MASS = 80; // kg

@@ -4,7 +4,7 @@ RESULTS_FOLDER = 'analysis/results'
 DEFAULT_OUTPUT = 'ovito_output.xyz'
 EXIT_OUTPUT = 'exit.txt'
 EXIT_FOLDER = 'analysis/exits'
-REPEAT = 20
+REPEAT = 10
 ITERATIONS = 1
 SIMULATION = 'time java -jar target/tpes-1.0-SNAPSHOT.jar < params.txt &'
 REMOVE = f'rm -fr {RESULTS_FOLDER}'
@@ -17,7 +17,7 @@ os.makedirs(RESULTS_FOLDER)
 # Generate multiple simulations
 for iteration in range(ITERATIONS):
   for simNum in range(REPEAT):
-    os.system(f'echo "{5 * (simNum + 20)}\n50\n{5 * (simNum + 20)}" > params.txt')
+    os.system(f'echo "{50 * (simNum + 1)}\n50\n{50 * (simNum + 10)}" > params.txt')
     os.system(SIMULATION) # run simulation
     os.system("sleep 2")
   # os.system("sleep 720")
