@@ -1,7 +1,11 @@
 from models import Particle, Step, Simulation
 import glob
 import sys
+import numpy as np
 import os
+
+def getDirectoryFromArgs():
+  return sys.argv[1]
 
 def parseDirectoryFromArgs():
   return parseDirectory(sys.argv[1])
@@ -23,6 +27,11 @@ def parseFile(filename):
 def parseDirectory(directory, parse=parseFile):
   return [parse(f) for f in glob.glob(directory + '/*')]
 
+def parseBiblio(directory):
+  lines = [line.rstrip('\n') for line in open(directory)]
+  lines = [np.array(line.split(',')).astype(float) for line in lines]
+  name = os.path.basename(directory).split('.')[0]
+  return name, lines
 
 def parseStep(lines):
   nextLines = int(lines.pop(0))

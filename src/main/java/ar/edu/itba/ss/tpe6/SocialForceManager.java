@@ -33,6 +33,8 @@ public class SocialForceManager {
 			
 			grid.setParticles(updateParticles(prevParticles, predictedParticles));
 		}
+
+		System.out.println("Finished with " + grid.getParticles().size() + " particles.");
 	}
     
     private List<Particle> updateParticles(final List<Particle> prevParticles, final List<Particle> predictedParticles) {

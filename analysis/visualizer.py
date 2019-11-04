@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from analyzer import calculateCollisionFrequency, calculateCollisionTimesAverage, calculateProbabilityCollisionTimesDistribution, calculateProbabilityVelocities, calculateDiffusion, calculateKineticEnergy, calculateExitsValues
-from parser import parseDirectoryFromArgs, parseModeFromArgs, parseTimesFile, parseDirectory
-from calculator import errorFn, discreteRange, PDF, mb, averageLists, stdevLists
+from analyzer import calculateCollisionFrequency, calculateCollisionTimesAverage, calculateProbabilityCollisionTimesDistribution, calculateProbabilityVelocities, calculateDiffusion, calculateKineticEnergy, calculateExitsValues, calculateDensities
+from parser import parseDirectoryFromArgs, parseModeFromArgs, parseTimesFile, parseDirectory, getDirectoryFromArgs, parseBiblio
+from calculator import errorFn, discreteRange, PDF, mb, averageLists, stdevLists, average, mergeByIndex
 import os
+import math
+import glob
 import pickle
 
 OUTPUT_FOLDER = 'output'
@@ -221,12 +223,124 @@ def bev():
   ax.plot(rang, results, 'o', markersize=2) 
   saveFig(fig, '1_1bev')
 
+def fundamental_diagram_calc(dirArgs, density = None):
+  dirs = sorted(glob.glob(f'{dirArgs}/*'))
+  densitiesBySimulation = []
+  averages = []
+  
+  for direct in dirs:
+    simulations = parseDirectory(direct)
+    stepsList = [simulation.getSecondHalf() for simulation in simulations]
+    averageSpeedsBySimulation = [average(averageLists([step.getParticlesSpeed() for step in steps])) for steps in stepsList]
+    densitiesBySimulation = calculateDensities(simulations, density)
+    averages.append(averageSpeedsBySimulation)
+  
+  ys = averageLists(averages)
+  errs = stdevLists(averages)
 
+  return densitiesBySimulation, ys, errs
+
+def fundamental_diagram(dirArgs):
+  dirs = sorted(glob.glob(f'{dirArgs}/*'))
+  densitiesBySimulation = []
+  averages = []
+  
+  for direct in dirs:
+    simulations = parseDirectory(direct)
+    stepsList = [simulation.getSecondHalf() for simulation in simulations]
+    averageSpeedsBySimulation = [average(averageLists([step.getParticlesSpeed() for step in steps])) for steps in stepsList]
+    densitiesBySimulation = calculateDensities(simulations)
+    averages.append(averageSpeedsBySimulation)
+  
+  ys = averageLists(averages)
+  errs = stdevLists(averages)
+
+  file = open(f'{dirArgs}_ys.tmp', 'wb')
+  simulations = pickle.dump(ys, file)
+  file.close()
+  file = open(f'{dirArgs}_xs.tmp', 'wb')
+  simulations = pickle.dump(densitiesBySimulation, file)
+  file.close()
+  file = open(f'{dirArgs}_errs.tmp', 'wb')
+  simulations = pickle.dump(errs, file)
+  file.close()
+
+  fig, ax = plt.subplots()
+  ax.set_ylabel('Velocidad [m/s]')
+  ax.set_xlabel('Densidad [1/m^2]')
+  fig.tight_layout()
+  markers, caps, bars = ax.errorbar(densitiesBySimulation, ys, yerr=errs, capsize=5, capthick=1, fmt="o", zorder=1, markersize=2) 
+  [bar.set_alpha(0.5) for bar in bars]
+  saveFig(fig, 'fundamental_diagram')
+  # plt.show()
+
+def fundamental_diagram_mix():
+  dirs = ['runs_5', 'runs_6', 'runs_7']
+  fig, ax = plt.subplots()
+  ax.set_ylabel('Velocidad [m/s]')
+  ax.set_xlabel('Densidad [1/m^2]')
+  densities = [21 * math.pi, 32 * math.pi, 45 * math.pi]
+  labels = ["R. Ext = 5m", "R. Ext = 6m", "R. Ext = 7m"]
+  didx = 0
+  for dir in dirs:
+    xs, ys, errs = fundamental_diagram_calc(dir, densities[didx])
+    markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label=labels[didx], capthick=1, fmt="o", zorder=1, markersize=2) 
+    [bar.set_alpha(0.5) for bar in bars]
+    didx+=1
+  fig.tight_layout()
+  ax.legend()
+  saveFig(fig, 'fundamental_diagram_mix')
+  # plt.show()
+
+def comparison_biblio():
+  dirs = ['biblio/HankinWright.txt', 'biblio/PredtechenskiiMilinskii.txt', 'biblio/Weidmann.txt']
+  methodDir = 'runs_6' 
+  fig, ax = plt.subplots()
+  # Load bibliography methods
+  for dir in dirs:
+    name, vals = parseBiblio(dir)
+    xs = [val[0] for val in vals]
+    xs = list(filter(lambda x: x < 2, xs))
+    ys = [val[1] for val in vals]
+    ys = ys[:len(xs)]
+    ax.set_ylabel('Velocidad [m/s]')
+    ax.set_xlabel('Densidad [1/m^2]')
+    ax.plot(xs, ys, "o-", label=name, markersize=2)
+
+  xs, ys, errs = fundamental_diagram_calc(methodDir, 32 * math.pi)
+  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o", zorder=1, markersize=2) 
+  [bar.set_alpha(0.5) for bar in bars]
+
+  fig.tight_layout()
+  ax.legend()
+  saveFig(fig, 'comparison_graph')
+  plt.show()
+
+def approx_biblio():
+  dirs = ['biblio/HankinWright.txt']
+  methodDir = 'runs_6--1.5' 
+  fig, ax = plt.subplots()
+  # Load bibliography methods
+  for dir in dirs:
+    name, vals = parseBiblio(dir)
+    xs = [val[0] for val in vals]
+    xs = list(filter(lambda x: x < 2, xs))
+    ys = [val[1] for val in vals]
+    ys = ys[:len(xs)]
+    ax.set_ylabel('Velocidad [m/s]')
+    ax.set_xlabel('Densidad [1/m^2]')
+    ax.plot(xs, ys, "o-", label=name, markersize=2)
+
+  xs, ys, errs = fundamental_diagram_calc(methodDir, 32 * math.pi)
+  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o", zorder=1, markersize=2) 
+  [bar.set_alpha(0.5) for bar in bars]
+
+  fig.tight_layout()
+  ax.legend()
+  saveFig(fig, 'approx_graph')
+  plt.show()
 
 def run():
-  print("python analysis/visualizer.py . 6")
-  print("python analysis/visualizer.py analysis/results 7")
-  print("python analysis/visualizer.py analysis/results 8")
   print("Las imágenes se guardan en la carpeta output de la raiz del proyecto.")
   print("Parse simulations\n")
   # if os.path.exists('22a.tmp'):
@@ -241,7 +355,7 @@ def run():
     # file.close()
   print("Parse mode\n")
   mode = parseModeFromArgs()
-  if (mode != 6):
+  if (mode != 6 and mode != 9 and mode != 10 and mode != 11 and mode != 12):
     simulations = parseDirectoryFromArgs()
   if mode == 1:
     ex3_4(simulations)
@@ -260,5 +374,13 @@ def run():
     tp5_e1b(simulations)
   elif mode == 8:
     bev()
+  elif mode == 9:
+    fundamental_diagram(getDirectoryFromArgs())
+  elif mode == 10:
+    fundamental_diagram_mix()
+  elif mode == 11:
+    comparison_biblio()
+  elif mode == 12:
+    approx_biblio()
 
 run()

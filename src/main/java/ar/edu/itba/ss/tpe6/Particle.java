@@ -76,6 +76,10 @@ public class Particle implements Cloneable {
 		return mass;
 	}
 
+	public void setRadius(double r) {
+		this.radius = r;
+	}
+
 	public double getPressure() {
 		return Math.abs(pressure);
 	}

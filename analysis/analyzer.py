@@ -1,6 +1,7 @@
 from calculator import calculateDistance, squareList, averageLists, linearRegression, calculateDeltas, average, discreteRange, PDF, stdevLists, average
 from functools import reduce #python 3
 import numpy
+import math
 
 def getBallDistancesFromOrigin(simulation):
   firstBall = simulation.steps[0].ball
@@ -47,6 +48,17 @@ def calculateKineticEnergy(simulation):
   kineticsList = [ map(getEnergy, particles) for particles in particlesList]
   kineticsSteps = [sum(kinetics) for kinetics in kineticsList]
   return kineticsSteps
+
+def calculateDensities(simulations, density = None):
+  ns = [len(simulation.steps[0].particles) for simulation in simulations]
+  if (density == None):
+    INTERNAL_RADIUS = 2
+    EXTERNAL_RADIUS = 5
+    area = math.pi * (EXTERNAL_RADIUS ** 2) - math.pi * (INTERNAL_RADIUS ** 2)
+    return [n  / area for n in ns]
+  return [n / density for n in ns]
+  
+
 
 def calculateExitsValues(qs):
   lastThird = qs[-len(qs)//3:]

@@ -33,6 +33,9 @@ def average(lst):
 def discreteRange(*args):
   return numpy.arange(*args)
 
+def mergeByIndex(lists):
+  numpy.array(list(zip(*lists)))
+
 # Gets a probability histogram from a list
 def PDF(lst, maxValue):
   return numpy.histogram(lst, bins=10, density=True) if maxValue == None else numpy.histogram(lst, bins=10, range=(0, maxValue), density=True)

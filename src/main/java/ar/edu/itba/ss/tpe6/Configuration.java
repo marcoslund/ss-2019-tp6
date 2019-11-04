@@ -17,19 +17,19 @@ public class Configuration {
 	public static final double A_CONSTANT = 2000; // N
 	public static final double B_CONSTANT = 0.08; // m
 	public static final double MIN_PARTICLE_RADIUS = 0.25; // m
-	public static final double MAX_PARTICLE_RADIUS = 0.35; // m
+	public static final double MAX_PARTICLE_RADIUS = 0.30; // m
 	public static final double K_NORM = 1.2e5; // kg/s^2
 	public static final double K_TANG = 2 * K_NORM; // kg/(m s)
 	public static final double PARTICLE_MASS = 80; // kg
 	private static final double INIT_VEL = 0.0; // m/s
 	public static final double TAU = 0.5; // s
-	public static final double DESIRED_VEL = 0.8; // m/s
+	public static final double DESIRED_VEL = 1.34; // m/s
 	private static int particleCount = 0;
 	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
-	public static final double TIME_STEP = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM); // s
+	public static final double TIME_STEP = 0.001; // s
 	private static double timeLimit;
 	public static double externalRadius;
-	private static final int INVALID_POSITION_LIMIT = 500;
+	private static final int INVALID_POSITION_LIMIT = 1000000;
 	private static String fileName = "";
 	
 	public static void requestParameters() {
@@ -83,22 +83,28 @@ public class Configuration {
 				double randomPositionX = 0;
 				double randomPositionY = 0;
 				boolean isValidPosition = false;
+				double accumulatedParticles = 0;
 
 				while (!isValidPosition) {
-					randomPositionX = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
-					randomPositionY = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
-					isValidPosition = validateParticlePosition(particles, randomPositionX, randomPositionY, p.getRadius());
+					p.setRadius(Configuration.calculateRadius(r));
+					do {
+						randomPositionX = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
+						randomPositionY = (externalRadius * 2 - 2 * p.getRadius()) * r.nextDouble() + p.getRadius();
+					} while(!isWithinExternalCircle(randomPositionX, randomPositionY, p.getRadius(), externalRadius, externalRadius)
+					|| isWithinInternalCircle(randomPositionX, randomPositionY, p.getRadius(), externalRadius, INTERNAL_RADIUS));
 
+					isValidPosition = validateParticlePosition(particles, randomPositionX, randomPositionY, p.getRadius());
 					invalidPositions += (isValidPosition) ? 0 : 1;
 				}
 				if (invalidPositions > INVALID_POSITION_LIMIT) break;
 				invalidPositions = 0;
 				p.setPosition(randomPositionX, randomPositionY);
-
 				fw.write(p.getId() + " " + p.getRadius() + " " + randomPositionX + " " + randomPositionY + " " + INIT_VEL + " " + INIT_VEL + "\n");
 			}
+
 			particles.removeAll(particles.subList(i, particles.size()));
 			particleCount = particles.size();
+			System.out.println("Final count: " + particleCount);
 		} catch (IOException e) {
 			System.err.println("Failed to create input file.");
 			e.printStackTrace();
@@ -125,11 +131,12 @@ public class Configuration {
 		return d;
 	}
 
+	private static double calculateRadius(Random r) {
+		return r.nextDouble() * (MAX_PARTICLE_RADIUS - MIN_PARTICLE_RADIUS) + MIN_PARTICLE_RADIUS;
+	}
+
 	private static double calculateExternalRadius(final List<Particle> particles) {
-		return 5 * particles.stream()
-				.mapToDouble(p -> p.getRadius() * 2)
-				.average()
-				.orElse(0) + INTERNAL_RADIUS;
+		return 6;
 	}
 	
 	/* Time (0) */
@@ -139,7 +146,7 @@ public class Configuration {
 		Random r = new Random();
 
 		for(int i = 0; i < particleCount; i++) {
-			double radius = r.nextDouble() * (MAX_PARTICLE_RADIUS - MIN_PARTICLE_RADIUS) + MIN_PARTICLE_RADIUS;
+			double radius = Configuration.calculateRadius(r);
 			Particle p = new Particle(radius, PARTICLE_MASS, 0, 0, INIT_VEL, INIT_VEL);
 			particles.add(p);
 		}
