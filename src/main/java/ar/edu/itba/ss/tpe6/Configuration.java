@@ -28,7 +28,6 @@ public class Configuration {
 	public static final double TAU = 0.5; // s
 	public static final double DESIRED_VEL = 0.91; // m/s
 	private static int particleCount = 0;
-	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
 	public static final double TIME_STEP = 0.001; // s
 	private static double timeLimit;
 	public static double externalRadius;
@@ -86,7 +85,6 @@ public class Configuration {
 				double randomPositionX = 0;
 				double randomPositionY = 0;
 				boolean isValidPosition = false;
-				double accumulatedParticles = 0;
 
 				while (!isValidPosition) {
 					p.setRadius(Configuration.calculateRadius(r));
