@@ -11,11 +11,14 @@ import java.util.Scanner;
 
 public class Configuration {
 
+	// public static final double DESIRED_VEL = 1.6; // m/s
+	public static final double B_CONSTANT = 0.08; // m
+
 	private static String INPUT_FILE_NAME = "config.txt";
 	private static String OUTPUT_FILE_NAME = "ovito_output.xyz";
 	public static final double INTERNAL_RADIUS = 2; // m
 	public static final double A_CONSTANT = 2000; // N
-	public static final double B_CONSTANT = 0.08; // m
+	// public static final double B_CONSTANT = 0.08; // m
 	public static final double MIN_PARTICLE_RADIUS = 0.15; // m
 	public static final double MAX_PARTICLE_RADIUS = 0.25; // m
 	public static final double K_NORM = 1.2e5; // kg/s^2
@@ -23,7 +26,7 @@ public class Configuration {
 	public static final double PARTICLE_MASS = 80; // kg
 	private static final double INIT_VEL = 0.0; // m/s
 	public static final double TAU = 0.5; // s
-	public static final double DESIRED_VEL = 1.34; // m/s
+	public static final double DESIRED_VEL = 0.91; // m/s
 	private static int particleCount = 0;
 	//private static double timeStep = 0.1 * Math.sqrt(PARTICLE_MASS / K_NORM);
 	public static final double TIME_STEP = 0.001; // s
@@ -136,7 +139,7 @@ public class Configuration {
 	}
 
 	private static double calculateExternalRadius(final List<Particle> particles) {
-		return 6;
+		return 4;
 	}
 	
 	/* Time (0) */

@@ -13,11 +13,16 @@ REMOVE = f'rm -fr {RESULTS_FOLDER}'
 if os.path.exists(RESULTS_FOLDER):
   os.system(REMOVE)
 os.makedirs(RESULTS_FOLDER)
-
+# ns = [19, 112, 187]
+# ns = [50,100,150,200,250,300,350,400,450,500]
+# ns = [33,66,98,131,164,197,230,263,295,328]
+ns = [19,38,56,75,94,113,131,150,169,188]
 # Generate multiple simulations
 for iteration in range(ITERATIONS):
-  for simNum in range(REPEAT):
-    os.system(f'echo "{50 * (simNum + 1)}\n50\n{50 * (simNum + 10)}" > params.txt')
+  # for simNum in range(REPEAT):
+  for n in ns:
+    # os.system(f'echo "{50 * (simNum + 1)}\n50\n{50 * (simNum + 10)}" > params.txt')
+    os.system(f'echo "{n}\n50\ntest-{n}" > params.txt')
     os.system(SIMULATION) # run simulation
     os.system("sleep 2")
   # os.system("sleep 720")

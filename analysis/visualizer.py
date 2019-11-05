@@ -238,53 +238,31 @@ def fundamental_diagram_calc(dirArgs, density = None):
   ys = averageLists(averages)
   errs = stdevLists(averages)
 
-  return densitiesBySimulation, ys, errs
+  return zip(*sorted(zip(densitiesBySimulation, ys, errs)))
 
-def fundamental_diagram(dirArgs):
-  dirs = sorted(glob.glob(f'{dirArgs}/*'))
-  densitiesBySimulation = []
-  averages = []
-  
-  for direct in dirs:
-    simulations = parseDirectory(direct)
-    stepsList = [simulation.getSecondHalf() for simulation in simulations]
-    averageSpeedsBySimulation = [average(averageLists([step.getParticlesSpeed() for step in steps])) for steps in stepsList]
-    densitiesBySimulation = calculateDensities(simulations)
-    averages.append(averageSpeedsBySimulation)
-  
-  ys = averageLists(averages)
-  errs = stdevLists(averages)
-
-  file = open(f'{dirArgs}_ys.tmp', 'wb')
-  simulations = pickle.dump(ys, file)
-  file.close()
-  file = open(f'{dirArgs}_xs.tmp', 'wb')
-  simulations = pickle.dump(densitiesBySimulation, file)
-  file.close()
-  file = open(f'{dirArgs}_errs.tmp', 'wb')
-  simulations = pickle.dump(errs, file)
-  file.close()
+def fundamental_diagram(dirArgs): 
+  xs, ys, errs = fundamental_diagram_calc(dirArgs, 21 *math.pi)
 
   fig, ax = plt.subplots()
   ax.set_ylabel('Velocidad [m/s]')
   ax.set_xlabel('Densidad [1/m^2]')
   fig.tight_layout()
-  markers, caps, bars = ax.errorbar(densitiesBySimulation, ys, yerr=errs, capsize=5, capthick=1, fmt="o", zorder=1, markersize=2) 
+  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, capthick=1, fmt="o-", zorder=1, markersize=2) 
   [bar.set_alpha(0.5) for bar in bars]
   saveFig(fig, 'fundamental_diagram')
   # plt.show()
 
 def fundamental_diagram_mix():
-  dirs = ['runs_5', 'runs_6', 'runs_7']
+  dirs = ['runs-4', 'runs-5', 'runs-6']
   fig, ax = plt.subplots()
   ax.set_ylabel('Velocidad [m/s]')
   ax.set_xlabel('Densidad [1/m^2]')
-  densities = [21 * math.pi, 32 * math.pi, 45 * math.pi]
-  labels = ["R. Ext = 5m", "R. Ext = 6m", "R. Ext = 7m"]
+  densities = [12 * math.pi, 21 * math.pi, 32 * math.pi]
+  labels = ["R. Ext = 4m", "R. Ext = 5m", "R. Ext = 6m"]
   didx = 0
   for dir in dirs:
     xs, ys, errs = fundamental_diagram_calc(dir, densities[didx])
-    markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label=labels[didx], capthick=1, fmt="o", zorder=1, markersize=2) 
+    markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label=labels[didx], capthick=1, fmt="o-", zorder=1, markersize=4) 
     [bar.set_alpha(0.5) for bar in bars]
     didx+=1
   fig.tight_layout()
@@ -293,52 +271,86 @@ def fundamental_diagram_mix():
   # plt.show()
 
 def comparison_biblio():
-  dirs = ['biblio/HankinWright.txt', 'biblio/PredtechenskiiMilinskii.txt', 'biblio/Weidmann.txt']
-  methodDir = 'runs_6' 
+  dirs = [f for f in glob.glob('biblio/*')]
+  # methodDir = 'runs-5' 
+  methodDir = 'aprox' 
   fig, ax = plt.subplots()
   # Load bibliography methods
+  i = 0
+  markers = ['s', 'P', 'X', 'v', 'o', "*"]
   for dir in dirs:
     name, vals = parseBiblio(dir)
     xs = [val[0] for val in vals]
-    xs = list(filter(lambda x: x < 2, xs))
+    xs = list(filter(lambda x: x < 6, xs))
     ys = [val[1] for val in vals]
     ys = ys[:len(xs)]
+    xs, ys = zip(*sorted(zip(xs, ys)))
     ax.set_ylabel('Velocidad [m/s]')
     ax.set_xlabel('Densidad [1/m^2]')
-    ax.plot(xs, ys, "o-", label=name, markersize=2)
+    if name == 'Older': ax.plot(xs, ys, f'{markers[i]}', label=name, markersize=4)
+    else: ax.plot(xs, ys, f'{markers[i]}', label=name, markersize=4)
+    i += 1
 
-  xs, ys, errs = fundamental_diagram_calc(methodDir, 32 * math.pi)
-  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o", zorder=1, markersize=2) 
+  xs, ys, errs = fundamental_diagram_calc(methodDir, 12 * math.pi)
+  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=8, label="SFM", capthick=1, fmt="o-", zorder=1, markersize=6, linewidth=2) 
   [bar.set_alpha(0.5) for bar in bars]
 
   fig.tight_layout()
   ax.legend()
-  saveFig(fig, 'comparison_graph')
+  # saveFig(fig, 'comparison_graph')
   plt.show()
 
 def approx_biblio():
-  dirs = ['biblio/Weidmann.txt']
-  methodDir = 'runs_6--1.5' 
+  dir = 'biblio/Helbing.txt'
+  methodDir = 'aprox' 
   fig, ax = plt.subplots()
+  
   # Load bibliography methods
-  for dir in dirs:
-    name, vals = parseBiblio(dir)
-    xs = [val[0] for val in vals]
-    # xs = list(filter(lambda x: x < 2, xs))
-    ys = [val[1] for val in vals]
-    ys = ys[:len(xs)]
-    ax.set_ylabel('Velocidad [m/s]')
-    ax.set_xlabel('Densidad [1/m^2]')
-    ax.plot(xs, ys, "o-", label=name, markersize=2)
+  name, vals = parseBiblio(dir)
+  xs = [val[0] for val in vals]
+  ys = [val[1] for val in vals]
+  ys = ys[:len(xs)]
+  ax.set_ylabel('Velocidad [m/s]')
+  ax.set_xlabel('Densidad [1/m^2]')
+  ax.plot(xs, ys, "*-", label=name, markersize=4)
 
-  xs, ys, errs = fundamental_diagram_calc(methodDir, 32 * math.pi)
-  xs, ys = zip(*sorted(zip(xs, ys)))
-  markers, caps, bars = ax.errorbar(xs, ys, yerr=errs, capsize=5, label="SFM", capthick=1, fmt="o-", zorder=1, markersize=4) 
+  biblioXs=xs
+  biblioYs=ys
+
+  xs, ys, errs = fundamental_diagram_calc(methodDir, 12 * math.pi)
+
+  totals = []
+  for i in range(len(biblioYs)):
+    totals.append((biblioYs[i] - ys[i+2]) ** 2)
+  
+  print(f'ECM: {sum(totals)/float(len(totals))}')
+
+  # xs, ys = zip(*sorted(zip(xs, ys)))
+  markers, caps, bars = ax.errorbar(xs[2:], ys[2:], yerr=errs[2:], capsize=5, label="SFM", capthick=1, fmt="o-", zorder=1, markersize=4) 
   [bar.set_alpha(0.5) for bar in bars]
 
   fig.tight_layout()
   ax.legend()
   saveFig(fig, 'approx_graph')
+  plt.show()
+
+
+def ecm_B():
+  a=[]
+  b=[]
+
+  for x in discreteRange(0.05,0.11,0.005):
+      y=359.1 * x**2 - 55.99*x + 2.186
+      a.append(x)
+      b.append(y)
+
+  fig, ax = plt.subplots()
+  ax.plot(a,b)
+  ax.plot([0.08],[0.0042], 'r*')
+  ax.set_ylabel('ECM')
+  ax.set_xlabel('Parámetro libre: B')
+  fig.tight_layout()
+  saveFig(fig, 'error')
   plt.show()
 
 def run():
@@ -382,6 +394,6 @@ def run():
   elif mode == 11:
     comparison_biblio()
   elif mode == 12:
-    approx_biblio()
+    ecm_B()
 
 run()
